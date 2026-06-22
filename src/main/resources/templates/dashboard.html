@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+.dashboard-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+            min-height: calc(100vh - 80px);
+        }
+.sidebar {
+            background: var(--glass);
+            border-right: 1px solid var(--border-color);
+            padding: 2rem 1.5rem;
+            border-radius: 0 20px 20px 0;
+        }
+.sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin-top: 2rem;
+        }
+.sidebar-nav li {
+            margin-bottom: 0.75rem;
+        }
+.sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border-radius: 12px;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+.sidebar-nav a:hover, .sidebar-nav a.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--accent);
+            transform: translateX(5px);
+        }
+.stat-card {
+            background: var(--glass);
+            padding: 1.5rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease;
+        }
+.stat-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+        }
+.vehicle-card {
+            background: var(--glass);
+            padding: 1.5rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+.vehicle-card i.bg-icon {
+            position: absolute;
+            right: -10px;
+            bottom: -10px;
+            font-size: 5rem;
+            opacity: 0.05;
+            transform: rotate(-15deg);
+        }
+</style>
+</head>
+<body class="fade-in">
+<nav class="navbar">
+    <div class="logo"><i class="fas fa-car-side"></i> AutoTrack</div>
+    <div class="nav-links">
+            <span id="userName" style="color: var(--text-muted); margin-right: 1rem; font-weight:
+500;"></span>
+        <a href="/profile" class="btn btn-sm btn-primary" style="padding: 0.5rem 1rem; height:
+auto;"><i class="fas fa-user-cog"></i> Profile</a>
+        <a href="#" onclick="logoutUser()" class="btn btn-sm btn-danger" style="margin-left:
+1rem; height: auto;"><i class="fas fa-power-off"></i>Logout</a>
+    </div>
+</nav>
+
+<div class="container dashboard-container">
+    <aside class="sidebar">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="width: 70px; height: 70px; background: var(--accent); border-radius: 50%; margin:
+0 auto 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color:
+white;">
+                <i class="fas fa-user"></i>
+            </div>
+            <h3 id="sidebarName" style="margin: 0; color: white;">Driver</h3>
+            <p id="sidebarEmail" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;
+word-break: break-all;"></p>
+        </div>
+
+        <ul class="sidebar-nav">
+            <li><a href="/dashboard" class="active"><i class="fas fa-th-large"></i> Overview</a></li>
+            <li><a href="/vehicles/list"><i class="fas fa-car"></i> My Garage</a></li>
+            <li><a href="/services/history"><i class="fas fa-history"></i> Service History</a></li>
+            <li><a href="/reminders/list"><i class="fas fa-bell"></i> Reminders</a></li>
+            <li><a href="/billing/invoices"><i class="fas fa-file-invoice-dollar"></i> Invoices</a></li>
+            <li><a href="/feedback/list"><i class="fas fa-star"></i> Reviews</a></li>
+            <li><a href="/feedback/add"><i class="fas fa-comment-alt"></i> Add Review</a></li>
+        </ul>
+    </aside>
+
+    <main style="padding: 2rem 0;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:
+1.5rem; margin-bottom: 3rem;">
+            <div class="stat-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 600;">ACTIVE
+FLEET</span>
+                    <i class="fas fa-car" style="color: #3b82f6;"></i>
+                </div>
+                <p id="totalVehicles" style="font-size: 2.25rem; font-weight: 800; margin-top: 1rem; color:
+white;">0</p>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;"><i class="fas
+fa-plus"></i> <a href="/vehicles/add" style="color: #3b82f6; text-decoration: none;">Add
+                    more</a></p>
+            </div>
+            <div class="stat-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 600;">TOTAL
+SERVICES</span>
+                    <i class="fas fa-tools" style="color: #10b981;"></i>
+                </div>
+                <p id="totalServices" style="font-size: 2.25rem; font-weight: 800; margin-top: 1rem; color:
+white;">0</p>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem;"><a
+                        href="/services/add" style="color: #10b981; text-decoration: none;">Log service</a></p>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 1.5rem; color: white;"><i class="fas fa-warehouse"></i> My
+                Garage</h3>
+            <a href="/vehicles/add" class="btn btn-primary btn-sm" style="height: auto; border-radius:
+8px;"><i class="fas fa-plus"></i> New Vehicle</a>
+        </div>
+
+        <div id="vehicleList" class="vehicle-grid">
+            <p style="color: var(--text-muted);">Fetching your vehicles...</p>
+        </div>
+    </main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+
+// 1. Fetch User Profile Data
+        try {
+            // Check with your team if this is the exact URL for fetching the logged-in user!
+            const userResponse = await fetch('/api/users/me');
+
+            if (userResponse.ok) {
+                const user = await userResponse.json();
+
+                // Fallbacks added just in case your Java entity uses 'name' instead of 'fullName'
+                const displayName = user.name || user.fullName || "Driver";
+
+                document.getElementById('userName').innerText = displayName;
+                document.getElementById('sidebarName').innerText = displayName;
+                document.getElementById('sidebarEmail').innerText = user.email || "";
+            } else {
+                console.warn("Could not load user profile details.");
+            }
+        } catch (err) {
+            console.error("User fetch error:", err);
+        }
+
+        // 2. Fetch Vehicles (The code you pasted earlier goes right here...)
+
+        try {
+            // Fetch Vehicles directly using native fetch
+            const vehiclesResponse = await fetch('/api/vehicles/my');
+
+            // If the server returns 401 Unauthorized, the user isn't logged in
+            if (vehiclesResponse.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            // Fetch Services
+            const servicesResponse = await fetch('/api/services/my');
+
+            // If responses are good, unpack the JSON
+            if (vehiclesResponse.ok && servicesResponse.ok) {
+                const vehicles = await vehiclesResponse.json();
+                const services = await servicesResponse.json();
+
+                // 1. Update the Counters
+                document.getElementById('totalVehicles').innerText = vehicles.length;
+                document.getElementById('totalServices').innerText = services.length;
+
+                // 2. Build the Garage List
+                const list = document.getElementById('vehicleList');
+
+                if (vehicles.length === 0) {
+                    list.innerHTML = `
+                        <div class="card grid-full" style="padding: 4rem; text-align: center; background: rgba(255,255,255,0.02);">
+                            <i class="fas fa-car-crash" style="font-size: 4rem; opacity: 0.1; margin-bottom: 1.5rem;"></i>
+                            <h4 style="color: var(--text-muted);">No vehicles registered yet.</h4>
+                            <p style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Start by adding your first vehicle to track its maintenance.</p>
+                            <a href="/vehicles/add" class="btn btn-primary" style="margin-top: 1.5rem; display: inline-block;">Add Your First Vehicle</a>
+                        </div>`;
+                } else {
+                    // Map the vehicles to the HTML template
+                    list.innerHTML = vehicles.map(v => {
+                        // Fallback logic to catch plateNumber regardless of exact naming
+                        const plate = v.plateNumber || v.plateNo || "Unknown";
+                        const model = v.model || "Vehicle";
+                        const type = v.vehicleType || "VEHICLE";
+                        const year = v.year || "Unknown Year";
+
+                        return `
+                        <div class="vehicle-card fade-in">
+                            <i class="fas fa-${type === 'CAR' ? 'car' : 'motorcycle'} bg-icon"></i>
+                            <div style="display:flex; justify-content: space-between; align-items: flex-start;">
+                                <span style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">
+                                    ${type}
+                                </span>
+                                <span style="color: var(--text-muted); font-size: 0.8rem; font-family: monospace;">${plate}</span>
+                            </div>
+                            <h3 style="margin: 1.25rem 0 0.25rem; font-size: 1.25rem; color: white;">${model}</h3>
+                            <p style="color: var(--text-muted); font-size: 0.85rem;">Manufactured in ${year}</p>
+
+                            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1.25rem 0;">
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                                <button onclick="getSummary('${plate}')" class="btn btn-sm" style="background: rgba(255,255,255,0.05); color: white; border: 1px solid var(--border-color); height: auto;">
+                                    <i class="fas fa-info-circle"></i> Info
+                                </button>
+                                <button onclick="window.location.href='/services/add?plate=${plate}'" class="btn btn-sm btn-primary" style="height: auto;">
+                                    <i class="fas fa-tools"></i> Log
+                                </button>
+                            </div>
+                        </div>
+                    `}).join('');
+                }
+            } else {
+                 console.error("Failed to fetch data from the server.");
+                 document.getElementById('vehicleList').innerHTML = `<p style="color: #ef4444;">Error connecting to server. Please refresh.</p>`;
+            }
+
+        } catch (err) {
+            console.error("Fetch error: ", err);
+            document.getElementById('vehicleList').innerHTML = `<p style="color: #ef4444;">Connection lost.</p>`;
+        }
+    });
+
+    async function getSummary(plate) {
+        try {
+            // Using native fetch for the summary and total
+            const summaryRes = await fetch(`/api/vehicles/${plate}/summary`);
+            const totalRes = await fetch(`/api/services/calculate-total/${plate}`);
+
+            const summary = summaryRes.ok ? await summaryRes.text() : "Details unavailable.";
+            const totalCost = totalRes.ok ? parseFloat(await totalRes.text()) : 0.00;
+
+            // Modal building code remains the same...
+            const modal = document.createElement('div');
+            modal.className = 'glass';
+            modal.style = 'position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); padding:2.5rem; z-index:10000; border-radius:30px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); max-width:400px; width:90%;';
+            modal.innerHTML = `
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <i class="fas fa-clipboard-check" style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;"></i>
+                    <h2 style="color: white; margin-top: 0.5rem;">Vehicle Insight</h2>
+                </div>
+                <p style="color: #cbd5e1; line-height: 1.6; text-align: center; font-size: 1.1rem;">${summary}</p>
+                <div style="margin: 2rem 0; padding: 1.5rem; background: rgba(16, 185, 129, 0.1); border-radius: 15px; border: 1px solid rgba(16, 185, 129, 0.3); text-align: center;">
+                    <span style="color: #10b981; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;">Total Life Maintenance Cost</span>
+                    <p style="color: #10b981; font-size: 2.25rem; font-weight: 800; margin: 0.5rem 0 0;">$${totalCost.toFixed(2)}</p>
+                </div>
+                <button id="closeModal" class="btn btn-primary" style="width: 100%;">Close Insight</button>
+            `;
+
+            const overlay = document.createElement('div');
+            overlay.style = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); backdrop-filter:blur(5px); z-index:9999;';
+
+            document.body.appendChild(overlay);
+            document.body.appendChild(modal);
+
+            document.getElementById('closeModal').onclick = () => {
+                modal.remove();
+                overlay.remove();
+            };
+        } catch (err) {
+            alert("Failed to fetch summary.");
+        }
+    }
+
+    // The bulletproof native logout function
+    async function logoutUser() {
+        try {
+            // Sending the POST request to your UserRestController
+            const response = await fetch('/api/users/logout', {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                // Successfully cleared the HttpSession in Java, now send them to login!
+                window.location.href = '/login';
+            } else {
+                alert("Something went wrong during logout.");
+            }
+        } catch (err) {
+            console.error("Logout error:", err);
+            // If the server is unreachable, just kick them back to login anyway for safety
+            window.location.href = '/login';
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Service | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="fade-in">
+<nav class="navbar">
+    <div class="logo"><i class="fas fa-car-side"></i> AutoTrack</div>
+    <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/services/history">Service History</a>
+        <a href="/reminders/list">Reminders</a>
+        <a href="/feedback/list">Reviews</a>
+        <a href="#" onclick="session.logout()" class="btn btn-sm btn-danger" style="margin-left:
+1rem;"><i class="fas fa-power-off"></i> Logout</a>
+    </div>
+</nav>
+
+<div class="container" style="max-width: 650px; margin-top: 3rem;">
+    <div class="card glass">
+        <div class="card-header" style="text-align: center; margin-bottom: 2.5rem;">
+            <h2 style="font-size: 2rem; color: var(--accent);"><i class="fas fa-tools"></i> Log
+                Maintenance</h2>
+            <p style="color: var(--text-muted);">Keep your vehicle records up to date for better
+                performance.</p>
+        </div>
+
+        <form id="serviceForm" class="grid-form">
+            <div class="form-group grid-full">
+                <label><i class="fas fa-car"></i> Select Vehicle</label>
+                <select id="plateNumber" required class="glass-input">
+                    <option value="" disabled selected>Select a vehicle...</option>
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-calendar-alt"></i> Service Date</label>
+                <input type="date" id="date" required class="glass-input">
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-tag"></i> Service Category</label>
+                <select id="serviceType" required class="glass-input">
+                    <option value="STANDARD">Standard Maintenance</option>
+                    <option value="EMERGENCY">Emergency Repair (50% Surcharge)</option>
+                </select>
+            </div>
+
+            <div class="form-group grid-full">
+                <label><i class="fas fa-file-alt"></i> Description of Work</label>
+                <input type="text" id="description" placeholder="e.g., Full synthetic oil change & brake
+pad replacement" required class="glass-input">
+            </div>
+
+            <div class="form-group grid-full">
+                <label><i class="fas fa-dollar-sign"></i> Base Cost</label>
+                <input type="number" step="0.01" id="cost" placeholder="0.00" required class="glass-input">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">* Standard
+                    maintenance adds a fixed $25 fee. Emergency repairs add a 50% surcharge.</p>
+            </div>
+
+            <div class="grid-full" style="margin-top: 1rem;">
+                <button type="submit" id="saveBtn" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-check-circle"></i> Save Record
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+    // 1. Fetch Vehicles when the page loads
+    document.addEventListener('DOMContentLoaded', async () => {
+        // We use querySelector to safely find the dropdown whether its ID is 'vehicle' or 'plateNumber'
+        const vehicleSelect = document.querySelector('select[name="vehicle"], select#plateNumber, select#vehicle');
+
+        if (!vehicleSelect) {
+            console.error("Could not find the dropdown in the HTML. Make sure your <select> tag has an ID!");
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/vehicles/my');
+
+            if (response.ok) {
+                const vehicles = await response.json();
+
+                if (vehicles.length === 0) {
+                    vehicleSelect.innerHTML = '<option value="">No vehicles found. Please register one.</option>';
+                } else {
+                    // This safely extracts your Tesla, Toyota, and Honda data
+                    const options = vehicles.map(v => {
+                        const plate = v.plateNumber || v.plateNo || "Unknown Plate";
+                        const model = v.model || "Vehicle";
+                        return `<option value="${plate}">${model} (${plate})</option>`;
+                    }).join('');
+
+                    vehicleSelect.innerHTML = '<option value="" disabled selected>Select a vehicle...</option>' + options;
+                }
+            } else {
+                vehicleSelect.innerHTML = '<option value="">Error loading vehicles. Please log in again.</option>';
+            }
+        } catch (err) {
+            console.error("Fetch error:", err);
+            vehicleSelect.innerHTML = '<option value="">Connection lost to server.</option>';
+        }
+    });
+
+// 2. Handle the Form Submission for Logging Maintenance
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const vehicleVal = document.querySelector('select[name="vehicle"], select#plateNumber, select#vehicle').value;
+            const dateVal = document.getElementById('date') ? document.getElementById('date').value : document.querySelector('input[type="date"]').value;
+            const categoryVal = document.getElementById('category') ? document.getElementById('category').value : '';
+            const descVal = document.getElementById('description') ? document.getElementById('description').value : '';
+            const costVal = document.getElementById('cost') ? parseFloat(document.getElementById('cost').value) : 0.0;
+
+            if (!vehicleVal) {
+                alert("Please select a vehicle from the dropdown first.");
+                return;
+            }
+
+            // FIXED: Ensure the category perfectly matches what Java expects
+            const mappedType = categoryVal.toUpperCase().includes("EMERGENCY") ? "EMERGENCY" : "STANDARD";
+
+            const payload = {
+                plateNumber: vehicleVal,
+                date: dateVal,           // FIXED: Java is looking for "date", not "serviceDate"
+                serviceType: mappedType, // FIXED: Sending exact keyword
+                description: descVal,
+                cost: costVal
+            };
+
+            try {
+                // FIXED: Changed endpoint from /log to /add to match @PostMapping("/add")
+                const response = await fetch('/api/services/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert('Maintenance record saved successfully!');
+                    window.location.href = '/dashboard';
+                } else {
+                    // This will now capture and display your Java Validation errors!
+                    const errorText = await response.text();
+                    alert('Failed to save: ' + errorText);
+                }
+            } catch (err) {
+                alert('Could not connect to the server.');
+            }
+        });
+    }
+</script>
+</body>
+</html>

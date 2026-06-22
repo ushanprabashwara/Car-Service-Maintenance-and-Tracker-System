@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reminders | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <style>
+        .overdue-badge {
+            background-color: var(--danger);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="fade-in">
+    <nav class="navbar">
+        <div class="logo">AutoTrack</div>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/reminders/schedule">Schedule</a>
+            <a href="/services/history">History</a>
+            <a href="/feedback/list">Reviews</a>
+        <a href="#" onclick="session.logout()" class="btn btn-danger" style="margin-left: 1rem;">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container fade-in">
+        <header style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>Upcoming Maintenance</h2>
+            <a href="/reminders/schedule" class="btn btn-primary">Schedule New</a>
+        </header>
+
+        <div id="reminderList" class="vehicle-grid">
+            <!-- Dynamic Cards -->
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!(await session.check())) window.location.href = '/login';
+            loadReminders();
+        });
+
+        async function loadReminders() {
+            try {
+                const reminders = await api.get('/api/reminders/my');
+                const list = document.getElementById('reminderList');
+                if (reminders.length === 0) {
+                    list.innerHTML = `<div class="card" style="grid-column: 1/-1;">No scheduled reminders. <a href="/reminders/schedule" style="color: var(--accent);">Schedule one now!</a></div>`;
+                    return;
+                }
+                
+                const today = new Date().toISOString().split('T')[0];
+
+                list.innerHTML = reminders.map(r => {
+                    const overdue = new Date(r.appointmentDate) < new Date();
+                    return `
+                        <div class="vehicle-card fade-in">
+                            <span class="vehicle-type-badge">${r.reminderType}</span>
+                            <h4>${r.serviceType}</h4>
+                            <p style="color: var(--text-muted); margin-top: 0.5rem;">Plate: ${r.plateNumber}</p>
+                            <p style="margin-top: 0.5rem;">Date: ${r.appointmentDate} ${overdue ? '<span class="overdue-badge">Overdue</span>' : ''}</p>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                                 <button onclick="cancelReminder('${r.plateNumber}', '${r.appointmentDate}')" class="btn btn-danger" style="width: 100%; padding: 0.5rem; font-size: 0.75rem;">Cancel</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                notify(err.message, 'error');
+            }
+        }
+
+        async function cancelReminder(plate, date) {
+             if (confirm('Cancel this scheduled service?')) {
+                try {
+                    await api.delete(`/api/reminders/cancel?plate=${plate}&date=${date}`);
+                    notify('Reminder cancelled');
+                    loadReminders();
+                } catch (err) {
+                    notify(err.message, 'error');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

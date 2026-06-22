@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Fleet | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+</head>
+<body class="fade-in">
+
+<nav class="navbar">
+    <div class="logo">AutoTrack</div>
+    <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/vehicles/list">My Vehicles</a>
+        <a href="/profile">Profile</a>
+        <a href="/feedback/list">Reviews</a>
+        <a href="#" onclick="session.logout()" class="btn btn-danger" style="margin-left: 1rem;">Logout</a>
+    </div>
+</nav>
+
+<div class="container fade-in">
+    <header style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>My Fleet</h2>
+        <a href="/vehicles/add" class="btn btn-primary">Add New Vehicle</a>
+    </header>
+
+    <div id="fleetList" class="vehicle-grid">
+        <p style="color: var(--text-muted);">Loading fleet...</p>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+    // 1. As soon as the HTML loads, instantly trigger the fleet fetch. No app.js checks!
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("Page loaded. Bypassing app.js and loading fleet directly...");
+        loadFleet();
+    });
+
+    async function loadFleet() {
+        try {
+            // Using bulletproof native fetch
+            const response = await fetch('/api/vehicles/my');
+
+            if (response.status === 401) {
+                window.location.href = '/login';
+                return;
+            }
+
+            // If the Java server crashes, catch it here before trying to parse JSON
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const vehicles = await response.json();
+            const list = document.getElementById('fleetList');
+
+            if (vehicles.length === 0) {
+                list.innerHTML = `
+                    <div class="card" style="grid-column: 1/-1; padding: 2rem; text-align: center; border-radius: 12px; background: rgba(255,255,255,0.05);">
+                        No vehicles found. <a href="/vehicles/add" style="color: #3b82f6; font-weight: bold;">Add your first car!</a>
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = vehicles.map(v => `
+                <div class="vehicle-card fade-in" style="background: rgba(30, 41, 59, 0.6); padding: 1.5rem; border-radius: 15px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <span class="vehicle-type-badge" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">
+                        ${v.vehicleType || 'VEHICLE'}
+                    </span>
+                    <h4 style="margin-top: 15px; font-size: 1.25rem;">${v.model}</h4>
+                    <div style="margin: 1rem 0;">
+                        <p style="color: #94a3b8; font-size: 0.9rem;">Plate: <span style="color: white;">${v.plateNumber}</span></p>
+                        <p style="color: #94a3b8; font-size: 0.9rem;">Year: <span style="color: white;">${v.year}</span></p>
+                        <p id="summary-${v.plateNumber}" style="margin-top: 1rem; color: #cbd5e1; font-style: italic; font-size: 0.85rem;"></p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                        <button onclick="deleteVehicle('${v.plateNumber}')" class="btn btn-danger" style="flex: 1; padding: 0.6rem; font-size: 0.85rem; border-radius: 8px;">Remove</button>
+                        <button onclick="getSummary('${v.plateNumber}')" class="btn btn-primary" style="flex: 1; padding: 0.6rem; font-size: 0.85rem; border-radius: 8px;">Summary</button>
+                    </div>
+                </div>
+            `).join('');
+
+        } catch (err) {
+            console.error("Fetch error:", err);
+            // This will replace "Loading fleet..." with the actual error if Java rejects us
+            document.getElementById('fleetList').innerHTML = `<p style="color: #ef4444;">Error: ${err.message}. Check your Java console!</p>`;
+        }
+    }
+
+    async function getSummary(plate) {
+        try {
+            const response = await fetch(`/api/vehicles/${plate}/summary`);
+            if (response.ok) {
+                const summaryText = await response.text();
+                document.getElementById(`summary-${plate}`).innerText = summaryText;
+            } else {
+                document.getElementById(`summary-${plate}`).innerText = "Summary unavailable.";
+            }
+        } catch (err) {
+            console.error("Summary error:", err);
+            document.getElementById(`summary-${plate}`).innerText = "Connection error.";
+        }
+    }
+
+    async function deleteVehicle(plateNumber) {
+        if (!confirm(`Are you sure you want to remove the vehicle with plate ${plateNumber}?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/vehicles/${plateNumber}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert('Vehicle removed successfully!');
+                loadFleet();
+            } else {
+                const errorText = await response.text();
+                alert('Failed to remove vehicle: ' + errorText);
+            }
+        } catch (err) {
+            console.error("Delete error:", err);
+            alert('Could not connect to the server.');
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Moderation | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <style>
+.review-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+.review-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.review-row:last-child {
+    border-bottom: none;
+}
+.review-row:hover {
+    background-color: var(--glass-hover);
+}
+.review-row strong {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+</style>
+</head>
+<body class="fade-in">
+    <nav class="navbar">
+        <div class="logo">AutoTrack Admin</div>
+        <div class="nav-links">
+            <a href="/dashboard">Back to Dashboard</a>
+            <a href="#" onclick="session.logout()" class="btn btn-danger" style="margin-left: 1rem;">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container fade-in">
+        <h2>Moderate Reviews</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Ensure only appropriate feedback is displayed on the platform.</p>
+        
+        <div class="card" id="reviewTable">
+            <!-- Dynamic Rows -->
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+             const user = await session.check();
+            if (!user || user.role !== 'ADMIN') {
+                 notify('Administrator privileges required', 'error');
+                 setTimeout(() => window.location.href = '/dashboard', 1500);
+                 return;
+            }
+            loadModeration();
+        });
+
+        async function loadModeration() {
+             try {
+                const reviews = await api.get('/api/reviews/all');
+                const table = document.getElementById('reviewTable');
+                if (reviews.length === 0) {
+                    table.innerHTML = `<p style="padding: 1rem; text-align: center;">No reviews to moderate.</p>`;
+                    return;
+                }
+                table.innerHTML = reviews.map(r => `
+                    <div class="review-row">
+                        <div style="flex: 1;">
+                            <strong>${r.username}</strong>
+                            <div style="color: #fbbf24; font-size: 0.75rem;">${'★'.repeat(r.rating)}</div>
+                            <p style="margin-top: 0.5rem; color: #cbd5e1">${r.comment}</p>
+                        </div>
+                        <button onclick="removeReview('${r.id}')" class="btn btn-danger" style="padding: 0.5rem 1rem; font-size: 0.75rem;">Delete Permanent</button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                notify(err.message, 'error');
+            }
+        }
+
+        async function removeReview(id) {
+            if (confirm('Delete this review permanently?')) {
+                try {
+                    await api.delete(`/api/reviews/${id}`);
+                    notify('Review removed');
+                    loadModeration();
+                } catch (err) {
+                    notify(err.message, 'error');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

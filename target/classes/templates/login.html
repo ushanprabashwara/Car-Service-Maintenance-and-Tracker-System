@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="fade-in">
+    <nav class="navbar">
+        <div class="logo"><i class="fas fa-car-side"></i> AutoTrack</div>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/register">Register</a>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 450px; margin-top: 5rem;">
+        <div class="card glass">
+            <div class="card-header" style="text-align: center; margin-bottom: 2rem;">
+                <h2 style="font-size: 2rem; color: var(--accent);">Welcome Back</h2>
+                <p style="color: var(--text-muted);">Sign in to manage your vehicle service.</p>
+            </div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email Address</label>
+                    <input type="email" id="email" placeholder="name@example.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+                <button type="submit" id="loginBtn" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                    <span>Sign In</span> <i class="fas fa-sign-in-alt"></i>
+                </button>
+            </form>
+            
+            <div style="margin-top: 2rem; text-align: center; font-size: 0.9rem;">
+                Don't have an account? <a href="/register" style="color: var(--accent); font-weight: 500;">Create one</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const loginBtn = document.getElementById('loginBtn');
+            const originalBtnHtml = loginBtn.innerHTML;
+            
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+
+            const data = {
+                email: document.getElementById('email').value.trim(),
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const user = await api.post('/api/users/login', data);
+                notify(`Welcome back, ${user.fullName}!`, 'success');
+                setTimeout(() => window.location.href = '/dashboard', 1500);
+            } catch (err) {
+                notify(err.message, 'error');
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = originalBtnHtml;
+            }
+        };
+    </script>
+</body>
+</html>

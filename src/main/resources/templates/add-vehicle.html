@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Vehicle | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    
+</head>
+<body class="fade-in">
+<nav class="navbar">
+    <div class="logo">AutoTrack</div>
+    <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/vehicles/list">My Vehicles</a>
+        <a href="/profile">Profile</a>
+        <a href="/feedback/list">Reviews</a>
+        <a href="#" onclick="session.logout()" class="btn btn-danger" style="margin-left:1rem;">Logout</a>
+    </div>
+</nav>
+<div class="container" style="max-width: 600px; margin-top: 2rem;">
+    <div class="card">
+        <h2>Add New Vehicle</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Register your car or motorbike in our system.</p>
+
+        <form id="vehicleForm" action="/api/vehicles/add" method="POST">
+            <div class="form-group">
+                <label>Vehicle Type</label>
+                <select id="vehicleType" name="vehicleType" onchange="toggleFields()">
+                    <option value="CAR">Car</option>
+                    <option value="MOTORBIKE">Motorbike</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Plate Number</label>
+                <input type="text" id="plateNumber" name="plateNumber" placeholder="ABC-1234" required>
+            </div>
+            <div class="form-group">
+                <label>Model</label>
+                <input type="text" id="model" name="model" placeholder="Tesla Model 3" required>
+            </div>
+            <div class="form-group">
+                <label>Year</label>
+                <input type="number" id="year" name="year" value="2024" required>
+            </div>
+
+            <div id="carFields" class="form-group">
+                <label>Number of Doors</label>
+                <input type="number" id="numberOfDoors" name="numberOfDoors" value="4">
+            </div>
+            <div id="motoFields" class="form-group" style="display: none;">
+                <label>Has Sidecar?</label>
+                <select id="hasSidecar" name="hasSidecar">
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Register Vehicle</button>
+        </form>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+
+<script>
+    // Kept the UI toggle logic, but removed the form interceptor so standard submission works.
+    function toggleFields() {
+        const type = document.getElementById('vehicleType').value;
+
+        document.getElementById('carFields').style.display =
+            type === 'CAR' ? 'block' : 'none';
+
+        document.getElementById('motoFields').style.display =
+            type === 'MOTORBIKE' ? 'block' : 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (typeof session !== 'undefined' && !(await session.check())) {
+            window.location.href = '/login';
+        }
+    });
+</script>
+</body>
+</html>

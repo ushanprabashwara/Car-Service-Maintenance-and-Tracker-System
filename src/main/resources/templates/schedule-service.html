@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Service | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    
+</head>
+<body class="fade-in">
+<nav class="navbar">
+    <div class="logo">AutoTrack</div>
+    <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/reminders/list">View Reminders</a>
+        <a href="/services/history">History</a>
+        <a href="/feedback/list">Reviews</a>
+        <a href="#" onclick="session.logout()" class="btn btn-danger" style="margin-left: 1rem;">Logout</a>
+    </div>
+</nav>
+
+<div class="container" style="max-width: 600px; margin-top: 2rem;">
+    <div class="card">
+        <h2>Schedule Next Service</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Set a reminder for your vehicle's upcoming maintenance.</p>
+
+        <form id="reminderForm">
+            <div class="form-group">
+                <label>Vehicle Plate</label>
+                <select id="plateNumber" required>
+                    <option value="" disabled selected>Loading vehicles...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Service Date</label>
+                <input type="date" id="appointmentDate" required>
+            </div>
+            <div class="form-group">
+                <label>Service Type</label>
+                <input type="text" id="serviceType" placeholder="Annual inspection" required>
+            </div>
+            <div class="form-group">
+                <label>Reminder Type</label>
+                <select id="reminderType">
+                    <option value="DASHBOARD">Dashboard Prompt</option>
+                    <option value="EMAIL">Email Notification</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Schedule Reminder</button>
+        </form>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 1. Session check
+        try {
+            if (!(await session.check())) {
+                window.location.href = '/login';
+                return;
+            }
+        } catch (e) {
+            console.error("Session check failed", e);
+        }
+
+        // 2. Fetch vehicle list
+        const select = document.getElementById('plateNumber');
+        try {
+            const response = await fetch('/api/vehicles/my');
+
+            if (response.ok) {
+                const vehicles = await response.json();
+                console.log("Full data received:", vehicles); // Debugging line
+
+                if (vehicles.length === 0) {
+                    select.innerHTML = '<option value="">No vehicles found. Please register one.</option>';
+                } else {
+                    // Safe parsing: We check the structure of the first item
+                    const sample = vehicles[0];
+                    console.log("Keys in first vehicle object:", Object.keys(sample));
+
+                    // Build options, falling back gracefully if names don't match exactly
+                    const options = vehicles.map(v => {
+                        // Look for common property names just in case
+                        const plate = v.plateNumber || v.plateNo || v.plate || "Unknown Plate";
+                        const model = v.model || v.vehicleModel || "Unknown Model";
+
+                        return `<option value="${plate}">${model} (${plate})</option>`;
+                    }).join('');
+
+                    select.innerHTML = '<option value="" disabled selected>Select a vehicle...</option>' + options;
+                }
+            } else {
+                select.innerHTML = '<option value="">Error loading vehicles</option>';
+                console.error("Server returned status:", response.status);
+            }
+        } catch (err) {
+            select.innerHTML = '<option value="">Connection error</option>';
+            console.error("Fetch error:", err);
+        }
+    });
+
+    document.getElementById('reminderForm').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const data = {
+            plateNumber: document.getElementById('plateNumber').value,
+            appointmentDate: document.getElementById('appointmentDate').value,
+            serviceType: document.getElementById('serviceType').value,
+            reminderType: document.getElementById('reminderType').value
+        };
+
+        if (!data.plateNumber) {
+            alert("Please select a vehicle");
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/reminders/schedule', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                // Assuming your notify function from app.js exists
+                if(typeof notify === 'function') notify('Reminder scheduled!');
+                else alert('Reminder scheduled!');
+
+                setTimeout(() => window.location.href = '/reminders/list', 1500);
+            } else {
+                const error = await response.json();
+                if(typeof notify === 'function') notify(error.message || 'Failed to schedule', 'error');
+                else alert(error.message || 'Failed to schedule');
+            }
+        } catch (err) {
+            if(typeof notify === 'function') notify('Server connection error', 'error');
+            else alert('Server connection error');
+        }
+    };
+</script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+</head>
+<body class="fade-in">
+<nav class="navbar">
+    <div class="logo"><i class="fas fa-car-side"></i> AutoTrack</div>
+    <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/vehicles/list">My Vehicles</a>
+        <a href="/profile">Profile</a>
+        <a href="#" onclick="session.logout()" class="btn btn-sm btn-danger" style="margin-left:
+1rem;"><i class="fas fa-power-off"></i> Logout</a>
+    </div>
+</nav>
+
+<div class="container" style="max-width: 650px; margin-top: 3rem;">
+    <div class="card glass shadow-lg">
+        <div class="card-header" style="display: flex; align-items: center; gap: 1.5rem; margin
+bottom: 2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem;">
+            <div style="width: 80px; height: 80px; background: var(--accent); border-radius: 50%;
+display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white;">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <div>
+                <h2 id="displayFullName" style="margin: 0; color: white;">User Profile</h2>
+                <p id="displayEmail" style="color: var(--text-muted); margin: 0;"></p>
+            </div>
+        </div>
+
+        <form id="profileForm" class="grid-form">
+            <div class="form-group grid-full">
+                <label><i class="fas fa-id-card"></i> Full Name</label>
+                <input type="text" id="fullName" required placeholder="Enter your full name">
+            </div>
+
+            <div class="form-group grid-full">
+                <label><i class="fas fa-envelope"></i> Email Address (Read-only)</label>
+                <input type="email" id="email" readonly style="background: rgba(255,255,255,0.05); color:
+var(--text-muted); cursor: not-allowed;">
+            </div>
+
+            <div class="form-group grid-full">
+                <label><i class="fas fa-phone-alt"></i> Phone Number</label>
+                <input type="tel" id="phoneNumber" required placeholder="Add your phone number">
+            </div>
+
+            <!-- Fields handled by background data -->
+            <input type="hidden" id="password">
+            <input type="hidden" id="role">
+
+            <div class="grid-full" style="margin-top: 1rem;">
+                <button type="submit" id="updateBtn" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-save"></i> Save Profile Changes
+                </button>
+            </div>
+        </form>
+
+        <div style="margin-top: 4rem; padding: 2rem; border-radius: 12px; background: rgba(214, 61,
+61, 0.05); border: 1px dashed rgba(214, 61, 61, 0.3);">
+            <h3 style="color: #d63d3d; margin-top: 0;"><i class="fas fa-exclamation-triangle"></i>
+                Danger Zone</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Deleting your
+                account is permanent. All your service records, vehicles, and billing history will be permanently
+                deleted.</p>
+            <button onclick="deleteAccount()" class="btn btn-danger" style="background: transparent;
+border: 1px solid #d63d3d; color: #d63d3d;">
+                <i class="fas fa-trash-alt"></i> Request Account Deletion
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // --- 1. Load Data When Page Opens ---
+        try {
+            // Remember the 's' we added earlier? We must use it here too!
+            const response = await fetch('/api/users/me');
+
+            if (response.ok) {
+                const user = await response.json();
+
+                // Populate the fields with the data from Java
+                // We use || "" as a fallback in case the data is missing
+                document.getElementById('fullName').value = user.name || user.fullName || "";
+                document.getElementById('email').value = user.email || "";
+
+                // Assuming you added a phone number field to your Java User entity
+                document.getElementById('phoneNumber').value = user.phoneNumber || user.phone || "";
+
+                // FIXED: Matching the exact IDs from your HTML!
+                const displayName = user.name || user.fullName || "Driver";
+                document.getElementById('displayFullName').innerText = displayName;
+                document.getElementById('displayEmail').innerText = user.email || "";
+
+            } else if (response.status === 401) {
+                // If they aren't logged in, kick them back to the login page
+                window.location.href = '/login';
+            }
+        } catch (err) {
+            console.error("Error loading profile:", err);
+            alert("Could not load profile data from the server.");
+        }
+    });
+
+    // --- 2. Save Data When Button Clicked ---
+    const form = document.getElementById('profileForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Gather the new data from the text boxes
+            const payload = {
+                // We only send the fields they are allowed to change
+                fullName: document.getElementById('fullName').value,
+                phoneNumber: document.getElementById('phoneNumber').value
+            };
+
+            try {
+                // Point this to the @PutMapping("/profile") in your controller
+                const response = await fetch('/api/users/profile', {
+                    method: 'PUT', // Notice we use PUT instead of POST for updates
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert('Profile updated successfully!');
+                    // Optionally refresh the page to see changes
+                    // window.location.reload();
+                } else {
+                    const errorText = await response.text();
+                    alert('Failed to update: ' + errorText);
+                }
+            } catch (err) {
+                console.error("Save error:", err);
+                alert("Could not connect to the server to save changes.");
+            }
+        });
+    }
+
+    async function deleteAccount() {
+        if (!confirm('Are you absolutely sure? This will permanently delete your account and all data.')) return;
+        try {
+            const response = await fetch('/api/users/account', { method: 'DELETE' });
+            if (response.ok) {
+                notify('Account deleted. Redirecting...', 'success');
+                setTimeout(() => window.location.href = '/', 2000);
+            } else {
+                notify('Failed to delete account.', 'error');
+            }
+        } catch (err) {
+            notify('Server connection error.', 'error');
+        }
+    }
+
+</script>
+</body>
+</html>

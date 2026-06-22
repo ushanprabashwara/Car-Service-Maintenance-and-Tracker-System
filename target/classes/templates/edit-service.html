@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Edit Service | AutoTrack</title>
+
+    <link rel="stylesheet" href="/css/index.css" />
+    <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    
+</head>
+<body class="fade-in">
+<nav class="navbar">
+    <div class="logo">
+        <i class="fas fa-car-side"></i> AutoTrack
+    </div>
+
+    <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/services/history">Service History</a>
+        <a href="/feedback/list">Reviews</a>
+        <a
+                href="#"
+                onclick="session.logout()"
+                class="btn btn-sm btn-danger"
+                style="margin-left: 1rem;"
+        >
+            <i class="fas fa-power-off"></i> Logout
+        </a>
+    </div>
+</nav>
+
+<div class="container" style="max-width: 650px; margin-top: 3rem;">
+    <div class="card glass">
+        <div class="card-header" style="text-align: center; margin-bottom: 2.5rem;">
+            <h2 style="font-size: 2rem; color: var(--accent);">
+                <i class="fas fa-edit"></i> Edit Maintenance Record
+            </h2>
+            <p style="color: var(--text-muted);">
+                Modify the selected service record details.
+            </p>
+        </div>
+
+        <form id="editServiceForm" class="grid-form">
+            <div class="form-group grid-full">
+                <label for="plateNumber">
+                    <i class="fas fa-car"></i> Vehicle Plate
+                </label>
+                <select id="plateNumber" required class="glass-input">
+                    <!-- Populated dynamically -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="date">
+                    <i class="fas fa-calendar-alt"></i> Service Date
+                </label>
+                <input type="date" id="date" required class="glass-input" />
+            </div>
+
+            <div class="form-group">
+                <label for="serviceType">
+                    <i class="fas fa-tag"></i> Service Category
+                </label>
+                <select id="serviceType" required class="glass-input">
+                    <option value="STANDARD">Standard Maintenance</option>
+                    <option value="EMERGENCY">Emergency Repair</option>
+                </select>
+            </div>
+
+            <div class="form-group grid-full">
+                <label for="description">
+                    <i class="fas fa-file-alt"></i> Description of Work
+                </label>
+                <input type="text" id="description" required class="glass-input" />
+            </div>
+
+            <div class="form-group grid-full">
+                <label for="cost">
+                    <i class="fas fa-dollar-sign"></i> Base Cost
+                </label>
+                <input
+                        type="number"
+                        id="cost"
+                        step="0.01"
+                        required
+                        class="glass-input"
+                />
+            </div>
+
+            <div class="grid-full" style="margin-top: 1rem;">
+                <button
+                        type="submit"
+                        id="saveBtn"
+                        class="btn btn-primary"
+                        style="width: 100%;"
+                >
+                    <i class="fas fa-save"></i> Update Record
+                </button>
+
+                <button
+                        type="button"
+                        onclick="history.back()"
+                        class="btn"
+                        style="width: 100%; margin-top: 1rem; border: 1px solid var(--border-color);"
+                >
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const recordId = urlParams.get("id");
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const user = await session.check();
+
+      if (!user) {
+        window.location.href = "/login";
+        return;
+      }
+
+      if (!recordId) {
+        notify("No record ID provided", "error");
+        setTimeout(() => history.back(), 1500);
+        return;
+      }
+
+      try {
+        // Load user vehicles
+        const vehicles = await api.get("/api/vehicles/my");
+        const plateSelect = document.getElementById("plateNumber");
+
+        plateSelect.innerHTML = vehicles
+          .map(
+            (vehicle) =>
+              `<option value="${vehicle.plateNumber}">
+                ${vehicle.model} (${vehicle.plateNumber})
+              </option>`
+          )
+          .join("");
+
+        // Load existing service record
+        const record = await api.get(`/api/services/${recordId}`);
+
+        document.getElementById("plateNumber").value = record.plateNumber;
+        document.getElementById("date").value = record.date;
+        document.getElementById("description").value = record.description;
+        document.getElementById("cost").value = record.baseCost;
+        document.getElementById("serviceType").value = record.serviceType;
+      } catch (error) {
+        notify("Failed to load record: " + error.message, "error");
+      }
+    });
+
+    document.getElementById("editServiceForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const saveBtn = document.getElementById("saveBtn");
+      saveBtn.disabled = true;
+
+      const data = {
+        plateNumber: document.getElementById("plateNumber").value,
+        date: document.getElementById("date").value,
+        description: document.getElementById("description").value,
+        cost: parseFloat(document.getElementById("cost").value),
+        serviceType: document.getElementById("serviceType").value
+      };
+
+      try {
+        await api.put(`/api/services/${recordId}`, data);
+        notify("Record updated successfully!", "success");
+
+        setTimeout(() => {
+          window.location.href = "/services/history";
+        }, 1500);
+      } catch (error) {
+        notify(error.message, "error");
+        saveBtn.disabled = false;
+      }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoices | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <style>
+.vehicle-card, .card {
+    background: var(--glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    /* Thick left border so the JS inline style for PAID status shows up well */
+    border-left: 4px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.vehicle-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+#paymentModal .card {
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+</style>
+</head>
+<body class="fade-in">
+    <nav class="navbar">
+        <div class="logo">AutoTrack</div>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/billing/history">History</a>
+            <a href="/feedback/list">Reviews</a>
+        <a href="#" onclick="session.logout()" class="btn btn-danger" style="margin-left: 1rem;">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container fade-in">
+        <h2>My Invoices</h2>
+        <div id="invoiceList" class="vehicle-grid" style="margin-top: 1.5rem;">
+            <!-- Dynamic Cards -->
+        </div>
+    </div>
+    <!-- Payment Modal (Simulation) -->
+    <div id="paymentModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; padding: 1rem;">
+        <div class="card" style="width: 100%; max-width: 400px; position: relative;">
+            <h3 id="paymentTitle">Pay Invoice</h3>
+            <p id="paymentAmount" style="font-size: 1.5rem; color: var(--success); margin: 1rem 0; font-weight: 700;"></p>
+            
+            <form id="paymentForm">
+                <input type="hidden" id="payInvNo">
+                <div class="form-group">
+                    <label>Payment Method</label>
+                    <select id="paymentMethod" onchange="togglePayFields()">
+                        <option value="CARD">Credit / Debit Card</option>
+                        <option value="CASH">Cash at Counter</option>
+                    </select>
+                </div>
+                <div id="cardFields">
+                    <div class="form-group">
+                        <label>Card Number</label>
+                        <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Confirm Payment</button>
+                    <button type="button" onclick="closeModal()" class="btn btn-danger" style="padding: 0.5rem 1rem;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!(await session.check())) window.location.href = '/login';
+            loadInvoices();
+        });
+
+        async function loadInvoices() {
+            try {
+                const invoices = await api.get('/api/invoices/my');
+                const list = document.getElementById('invoiceList');
+                if (invoices.length === 0) {
+                    list.innerHTML = `<div class="card" style="grid-column: 1/-1;">No invoices found. Total paid: $0</div>`;
+                    return;
+                }
+                list.innerHTML = invoices.map(i => `
+                    <div class="vehicle-card fade-in" style="${i.status === 'PAID' ? 'border-left-color: var(--success)' : ''}">
+                        <span class="vehicle-type-badge">${i.status}</span>
+                        <h4>${i.invoiceNumber}</h4>
+                        <p style="color: var(--text-muted); margin: 0.5rem 0;">Vehicle: ${i.plateNumber}</p>
+                        <p style="font-size: 1.25rem; font-weight: 700; color: #f8fafc;">$${i.amount.toFixed(2)}</p>
+                        ${i.status === 'PENDING' ? `
+                             <button onclick="openPayModal('${i.invoiceNumber}', ${i.amount})" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;">Pay Now</button>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (err) {
+                notify(err.message, 'error');
+            }
+        }
+
+        function openPayModal(inv, amount) {
+            document.getElementById('paymentModal').style.display = 'flex';
+            document.getElementById('payInvNo').value = inv;
+            document.getElementById('paymentAmount').innerText = `$${amount.toFixed(2)}`;
+            document.getElementById('paymentTitle').innerText = `Paying ${inv}`;
+        }
+
+        function closeModal() {
+            document.getElementById('paymentModal').style.display = 'none';
+        }
+
+        function togglePayFields() {
+            const m = document.getElementById('paymentMethod').value;
+            document.getElementById('cardFields').style.display = m === 'CARD' ? 'block' : 'none';
+        }
+
+        document.getElementById('paymentForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const inv = document.getElementById('payInvNo').value;
+            try {
+                // Simulate polymorphic payment backend hit or just status update
+                await api.put(`/api/invoices/${inv}/pay`, {});
+                notify('Payment successful!');
+                closeModal();
+                loadInvoices();
+            } catch (err) {
+                notify(err.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

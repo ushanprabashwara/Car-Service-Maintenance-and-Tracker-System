@@ -1,0 +1,8 @@
+pasindu,12345678,Pasindu Nimsara,pasindu@gmail.com,077353534
+Nimsara,12345678,Pasindu Nimsara,pasindu@gmail.com,0775684978
+pnimsara,12345678,Pasindu Nimsara,pasindu@gmail.com,0775684978
+pgamge,12345678,Pasindu Nimsara,pasindu@gmail.com,0775684978
+pasindu@gmail.com,12345678,Pasindu Nimsaraa,0775684978,USER
+ushan@gmail.com,123456,Ushan Prabashwara,0712345678,USER
+chathuka@gmail.com,chathuka1234,Chathuka Heshan,0716769405,USER
+sanithu@gmail.com,sanithu123,Sanithu Siriwardhana,0703887126,USER

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Review | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <style>
+.star-rating {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+.star { color: var(--border-color); transition: color 0.2s; }
+.star.active { color: #fbbf24; }
+.star-rating {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    font-size: 2rem !important; /* Make stars slightly larger */
+    cursor: pointer;
+}
+.star {
+    color: var(--border-color);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-block;
+}
+.star:hover {
+    transform: scale(1.15);
+    color: rgba(251, 191, 36, 0.5); /* Faint gold on hover */
+}
+.star.active {
+    color: #f59e0b;
+    text-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+    transform: scale(1.1);
+}
+</style>
+</head>
+<body class="fade-in">
+<nav class="navbar">
+    <div class="logo">AutoTrack</div>
+    <div class="nav-links">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/feedback/list">View Reviews</a>
+        <a href="#" onclick="session.logout()" class="btn btn-danger" style="margin-left:
+1rem;">Logout</a>
+    </div>
+</nav>
+
+<div class="container" style="max-width: 600px; margin-top: 2rem;">
+    <div class="card">
+        <h2>Write a Review</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Share your experience with our
+            automotive services.</p>
+
+        <form id="reviewForm">
+            <div class="form-group">
+                <label>Rating</label>
+                <div id="ratingStars" class="star-rating">
+                    <span class="star" data-value="1">★</span>
+                    <span class="star" data-value="2">★</span>
+                    <span class="star" data-value="3">★</span>
+                    <span class="star" data-value="4">★</span>
+                    <span class="star" data-value="5">★</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Your Feedback</label>
+                <textarea id="comment" required style="width: 100%; min-height: 100px; padding:
+0.75rem; border-radius: 0.5rem; border: 1px solid var(--border-color); background: var(--bg-color);
+color: var(--text-color); outline: none;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Post Review</button>
+        </form>
+    </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+    let rating = 0;
+    document.addEventListener('DOMContentLoaded', async () => {
+         if (!(await session.check())) window.location.href = '/login';
+
+        const stars = document.querySelectorAll('.star');
+        stars.forEach(s => {
+            s.onclick = () => {
+                rating = parseInt(s.dataset.value);
+                stars.forEach(star => {
+                    star.classList.toggle('active', parseInt(star.dataset.value) <= rating);
+                });
+            };
+        });
+    });
+
+    document.getElementById('reviewForm').onsubmit = async (e) => {
+        e.preventDefault();
+        if (rating === 0) return notify('Please select a rating', 'error');
+
+        const data = {
+            comment: document.getElementById('comment').value,
+            rating: rating
+        };
+
+        try {
+            await api.post('/api/reviews/add', data);
+            notify('Thank you for your feedback!');
+            setTimeout(() => window.location.href = '/feedback/list', 1500);
+        } catch (err) {
+            notify(err.message, 'error');
+        }
+    };
+</script>
+</body>
+</html>

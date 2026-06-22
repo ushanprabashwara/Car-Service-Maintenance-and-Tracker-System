@@ -1,0 +1,7 @@
+123,M3,2024,pasindu@gmail.com,CAR,4
+CAB-2534,Tesla Model 6,2025,ushan@gmail.com,CAR,6
+SAN-0008,Pagani Imola,2024,sanithu@gmail.com,CAR,2
+CCC-7777,Toyota Land Cruiser 250,2025,ushan@gmail.com,CAR,4
+CAX-5428,Toyota Vitz,2018,chathuka@gmail.com,CAR,4
+CAJ-1448,Honda Fit,2012,ushan@gmail.com,CAR,4
+PH-6946,Toyota KDH Super GL,2016,ushan@gmail.com,CAR,4

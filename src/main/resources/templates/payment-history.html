@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment History | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <style>
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 2rem;
+            color: var(--text-color);
+        }
+        .history-table th, .history-table td {
+            text-align: left;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body class="fade-in">
+    <nav class="navbar">
+        <div class="logo">AutoTrack</div>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/billing/invoices">Current Invoices</a>
+            <a href="/feedback/list">Reviews</a>
+        <a href="#" onclick="session.logout()" class="btn btn-danger" style="margin-left: 1rem;">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container fade-in">
+        <h2>Payment History</h2>
+        <div class="card">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Invoice No</th>
+                        <th>Vehicle</th>
+                        <th>Amount Paid</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="paymentList">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!(await session.check())) window.location.href = '/login';
+            loadPayments();
+        });
+
+        async function loadPayments() {
+             try {
+                const invoices = (await api.get('/api/invoices/my')).filter(i => i.status === 'PAID');
+                const list = document.getElementById('paymentList');
+                if (invoices.length === 0) {
+                    list.innerHTML = `<tr><td colspan="5" style="text-align: center;">No payment records found.</td></tr>`;
+                    return;
+                }
+                list.innerHTML = invoices.map(i => `
+                    <tr>
+                        <td>${i.date || 'Today'}</td>
+                        <td>${i.invoiceNumber}</td>
+                        <td>${i.plateNumber}</td>
+                        <td style="font-weight: 700; color: var(--success);">$${i.amount.toFixed(2)}</td>
+                        <td><span class="vehicle-type-badge PAID" style="background-color: var(--success); color: white;">COMPLETED</span></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                notify(err.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

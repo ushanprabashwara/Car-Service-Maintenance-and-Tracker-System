@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service History | AutoTrack</title>
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .history-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            margin-top: 2rem;
+            color: var(--text-color);
+        }
+        .history-table th {
+            text-align: left;
+            padding: 1rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .history-row {
+            background: rgba(255, 255, 255, 0.05);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+        .history-row:hover {
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .history-row td {
+            padding: 1.25rem 1rem;
+        }
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-standard { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid #3b82f6; }
+        .badge-emergency { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+    </style>
+</head>
+<body class="fade-in">
+    <nav class="navbar">
+        <div class="logo"><i class="fas fa-car-side"></i> AutoTrack</div>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/services/add">Log Service</a>
+            <a href="/feedback/list">Reviews</a>
+        <a href="#" onclick="session.logout()" class="btn btn-sm btn-danger" style="margin-left: 1rem;"><i class="fas fa-power-off"></i> Logout</a>
+        </div>
+    </nav>
+
+    <div class="container fade-in">
+        <header style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 3rem;">
+            <div>
+                <h2 style="font-size: 2.25rem; color: white;">Service History</h2>
+                <p style="color: var(--text-muted);">View and manage maintenance records for your vehicle fleet.</p>
+            </div>
+            <a href="/services/add" class="btn btn-primary" style="padding: 1rem 1.5rem; border-radius: 12px; height: auto;">
+                <i class="fas fa-plus-circle"></i> Log New Maintenance
+            </a>
+        </header>
+
+        <div class="card glass shadow-lg">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-calendar-day"></i> Date</th>
+                        <th><i class="fas fa-barcode"></i> Vehicle</th>
+                        <th><i class="fas fa-info-circle"></i> Work Description</th>
+                        <th><i class="fas fa-chart-line"></i> Category</th>
+                        <th style="text-align: right;"><i class="fas fa-dollar-sign"></i> Final Cost</th>
+                        <th style="text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="historyList">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!(await session.check())) window.location.href = '/login';
+            loadHistory();
+        });
+
+        async function loadHistory() {
+            try {
+                const records = await api.get('/api/services/my');
+                const list = document.getElementById('historyList');
+                
+                if (records.length === 0) {
+                    list.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 4rem; color: var(--text-muted);">
+                        <i class="fas fa-clipboard-list" style="font-size: 3rem; opacity: 0.3; margin-bottom: 1rem; display: block;"></i>
+                        No maintenance history records found.
+                    </td></tr>`;
+                    return;
+                }
+
+                list.innerHTML = records.map(r => `
+                    <tr class="history-row">
+                        <td>${r.date}</td>
+                        <td style="font-weight: bold; color: var(--accent);">${r.plateNumber}</td>
+                        <td>${r.description}</td>
+                        <td>
+                            <span class="badge badge-${r.serviceType.toLowerCase()}">
+                                <i class="fas ${r.serviceType === 'EMERGENCY' ? 'fa-bolt' : 'fa-check-circle'}"></i> 
+                                ${r.serviceType}
+                            </span>
+                        </td>
+                        <td style="font-weight: 800; color: #10b981; text-align: right;">$${r.totalCost.toFixed(2)}</td>
+                        <td style="text-align: center;">
+                             <button onclick="window.location.href='/services/edit?id=${r.recordId}'" class="btn btn-sm" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); height: auto; padding: 0.4rem 0.6rem; margin-right: 0.5rem;">
+                                <i class="fas fa-edit"></i>
+                             </button>
+                             <button onclick="deleteRecord('${r.recordId}')" class="btn btn-sm btn-danger" style="background: transparent; border: 1px solid var(--danger); height: auto; padding: 0.4rem 0.6rem;">
+                                <i class="fas fa-trash-alt"></i>
+                             </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                notify("ERROR: " + err.message, 'error');
+            }
+        }
+
+        async function deleteRecord(id) {
+             if (confirm('Delete this service record? This action cannot be undone.')) {
+                try {
+                    await api.delete(`/api/services/${id}`);
+                    notify('Service record deleted from database!', 'success');
+                    loadHistory();
+                } catch (err) {
+                    notify(err.message, 'error');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
